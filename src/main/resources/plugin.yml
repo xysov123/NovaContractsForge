@@ -1,0 +1,36 @@
+name: NovaContracts
+main: com.xysov.novacontracts.NovaContracts
+version: 1.0.0
+api-version: 1.16
+author: xysov
+description: A timed, tiered contracts plugin for Pixelmon/Spigot 1.16.5 servers.
+
+commands:
+  contract:
+    description: Manage and view contracts
+    usage: /<command>
+    permission: novacontracts.accept
+    aliases: [contracts]
+
+permissions:
+  novacontracts.accept:
+    description: Allows accepting contracts
+    default: true
+  novacontracts.cancel:
+    description: Allows cancelling contracts
+    default: true
+  novacontracts.reload:
+    description: Allows reloading configs
+    default: op
+  novacontracts.resetcooldown:
+    description: Allows resetting contract cooldowns
+    default: op
+  novacontracts.easy:
+    description: Allows accepting easy contracts
+    default: true
+  novacontracts.medium:
+    description: Allows accepting medium contracts
+    default: true
+  novacontracts.hard:
+    description: Allows accepting hard contracts
+    default: op

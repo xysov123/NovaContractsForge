@@ -1,0 +1,23 @@
+contracts:
+  starter_pokemon_catch:
+    tier: easy
+    duration: 600  # seconds
+    tasks:
+      - type: CATCH_POKEMON
+        target: 3
+        pokemon: [bulbasaur, charmander, squirtle]
+
+  diamond_miner:
+    tier: medium
+    duration: 900
+    tasks:
+      - type: MINE_BLOCK
+        target: 10
+        block: minecraft:diamond_ore
+
+  ultimate_trainer:
+    tier: hard
+    duration: 1800
+    tasks:
+      - type: DEFEAT_TRAINER
+        target: 5

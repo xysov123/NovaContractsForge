@@ -1,0 +1,7 @@
+rewards:
+  easy:
+    - money: 100
+  medium:
+    - money: 250
+  hard:
+    - money: 500
