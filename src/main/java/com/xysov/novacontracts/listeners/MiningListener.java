@@ -72,7 +72,7 @@ public class MiningListener implements Listener {
 
         if (progressMade) {
             // Send updated action bar progress to player
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
         } else {
             NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " mined " + blockType.name() + " but no matching task found.");
         }

@@ -47,7 +47,7 @@ public class CraftingListener implements Listener {
         }
 
         if (progressMade) {
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
             NovaContracts.getInstance().getDataManager().savePlayerData(player);
         }
 

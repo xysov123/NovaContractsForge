@@ -9,16 +9,18 @@ public class ContractTask {
     private final List<String> listSpecific; // e.g. ["DIAMOND", "EMERALD"]
     private final int requiredAmount;
     private final Integer minLevel;          // NEW: e.g. for DEFEAT_TRAINER
+    private final String displayName;
 
     private int progress = 0;
     private boolean complete = false;
 
-    public ContractTask(TaskType type, String specific, List<String> listSpecific, int requiredAmount, Integer minLevel) {
+    public ContractTask(TaskType type, String specific, List<String> listSpecific, int requiredAmount, Integer minLevel, String displayName) {
         this.type = type;
         this.specific = specific;
         this.listSpecific = listSpecific;
         this.requiredAmount = requiredAmount;
         this.minLevel = minLevel;
+        this.displayName = displayName;
     }
 
     public TaskType getType() {
@@ -65,12 +67,11 @@ public class ContractTask {
     }
 
     public String getDisplayName() {
-        if (specific != null) return type.toString() + " (" + specific + ")";
-        if (listSpecific != null && !listSpecific.isEmpty()) return type.toString() + " " + listSpecific.toString();
-        return type.toString();
+        return displayName != null ? displayName : type.toString();
     }
 
     public Integer getMinLevel() {
         return minLevel;
     }
+
 }

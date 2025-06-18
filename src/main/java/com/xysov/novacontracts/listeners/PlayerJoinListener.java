@@ -3,7 +3,6 @@ package com.xysov.novacontracts.listeners;
 import com.xysov.novacontracts.NovaContracts;
 import com.xysov.novacontracts.contracts.ActiveContract;
 import com.xysov.novacontracts.managers.ContractManager;
-
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -31,6 +30,7 @@ public class PlayerJoinListener implements Listener {
             // Restore the boss bar and timer for this player
             contractManager.startBossBar(player, contract);
             contractManager.startContractTimer(player, contract);
+            contractManager.updateContractScoreboard(player, contract); // Restore scoreboard on join
         }
     }
 }

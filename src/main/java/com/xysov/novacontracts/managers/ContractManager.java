@@ -14,6 +14,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.Scoreboard;
 
 import java.util.*;
 
@@ -24,6 +28,7 @@ public class ContractManager {
     private final Map<UUID, ActiveContract> activeContracts = new HashMap<>();
     private final Map<UUID, Long> contractCooldowns = new HashMap<>();
     private final Map<UUID, BossBar> bossBars = new HashMap<>();
+    private final Map<UUID, Scoreboard> contractScoreboards = new HashMap<>();
 
     public ContractManager(NovaContracts plugin) {
         this.plugin = plugin;
@@ -66,6 +71,7 @@ public class ContractManager {
             return;
         }
 
+        // Pick one random contract from the available contracts
         String contractId = availableContracts.get(new Random().nextInt(availableContracts.size()));
         ConfigurationSection contractSection = contractsConfig.getConfigurationSection("contracts." + contractId);
         if (contractSection == null) {
@@ -75,14 +81,19 @@ public class ContractManager {
         }
 
         long duration = contractSection.getLong("duration", 600);
-        List<ContractTask> tasks = parseTasks(contractSection.getConfigurationSection("tasks"));
-        if (tasks.isEmpty()) {
+        // Pass the contractId as displayName to parseTasks, so tasks get the friendly contract name
+        List<ContractTask> allTasks = parseTasks(contractSection.getConfigurationSection("tasks"), contractId);
+        if (allTasks.isEmpty()) {
             player.sendMessage(colorMsg(messages.getString("tasks_missing_or_invalid").replace("%contractId%", contractId)));
             plugin.getLogger().warning("Tasks missing or invalid for contract: " + contractId);
             return;
         }
 
-        ActiveContract contract = new ActiveContract(uuid, tier, contractId, System.currentTimeMillis(), duration, tasks);
+        // Pick exactly one random task from the list
+        ContractTask chosenTask = allTasks.get(new Random().nextInt(allTasks.size()));
+        List<ContractTask> chosenTasks = Collections.singletonList(chosenTask);
+
+        ActiveContract contract = new ActiveContract(uuid, tier, contractId, System.currentTimeMillis(), duration, chosenTasks);
         activeContracts.put(uuid, contract);
 
         player.sendMessage(colorMsg(messages.getString("accepted_contract")
@@ -95,7 +106,9 @@ public class ContractManager {
         startContractTimer(player, contract);
     }
 
-    private List<ContractTask> parseTasks(ConfigurationSection tasksSection) {
+
+
+    private List<ContractTask> parseTasks(ConfigurationSection tasksSection, String displayName) {
         if (tasksSection == null) return Collections.emptyList();
 
         List<ContractTask> tasks = new ArrayList<>();
@@ -119,10 +132,11 @@ public class ContractManager {
             List<String> listSpecific = taskSec.getStringList("listSpecific");
             if (listSpecific.isEmpty()) listSpecific = null;
 
-            tasks.add(new ContractTask(type, specific, listSpecific, target, minLevel));
+            tasks.add(new ContractTask(type, specific, listSpecific, target, minLevel, displayName));
         }
         return tasks;
     }
+
 
 
     public void viewContract(Player player) {
@@ -137,8 +151,27 @@ public class ContractManager {
 
         player.sendMessage(colorMsg(messages.getString("view_header")));
         player.sendMessage(colorMsg(messages.getString("view_tier").replace("%tier%", capitalize(contract.getTier()))));
-        player.sendMessage(colorMsg(messages.getString("view_name").replace("%contractId%", contract.getContractId())));
+
+        // Instead of contract ID, show task details:
+        int taskNumber = 1;
+        for (ContractTask task : contract.getTasks()) {
+            String taskDisplay = formatTaskForDisplay(task, taskNumber);
+            player.sendMessage(colorMsg(taskDisplay));
+            taskNumber++;
+        }
     }
+
+    // Helper method to format a single task nicely
+    private String formatTaskForDisplay(ContractTask task, int taskNumber) {
+        String typeName = task.getType().name().replace('_', ' '); // e.g. CATCH_POKEMON → "CATCH POKEMON"
+        String specific = (task.getSpecific() != null) ? task.getSpecific() : "Multiple";
+
+        // Show progress left
+        int left = Math.max(0, task.getRequiredAmount() - task.getProgress());
+
+        return String.format("§7➤ §fTask %d: %s (%s) §8- §c%d left", taskNumber, typeName, specific, left);
+    }
+
 
     public void cancelContract(Player player) {
         UUID uuid = player.getUniqueId();
@@ -191,46 +224,48 @@ public class ContractManager {
         player.sendMessage(colorMsg("&aYou have completed your contract!"));
     }
 
-    public void sendTaskProgressActionBar(Player player, ActiveContract contract) {
+    public void updateContractScoreboard(Player player, ActiveContract contract) {
         FileConfiguration messages = ConfigLoader.getMessagesConfig();
-        String format = messages.getString("task_progress_actionbar", "&a%progress%");
 
-        plugin.getLogger().info("[DEBUG] Sending action bar to player " + player.getName());
+        String title = colorMsg(messages.getString("scoreboard.title", "§a✦ Contract ✦"));
+        List<ContractTask> tasks = contract.getTasks();
 
-        StringBuilder progress = new StringBuilder();
-        for (ContractTask task : contract.getTasks()) {
-            plugin.getLogger().info("[DEBUG] Checking task: " + task.getDisplayName() + ", Complete? " + task.isComplete());
-
-            if (task.isComplete()) {
-                continue;
-            }
-
+        String taskLine = "";
+        for (ContractTask task : tasks) {
+            if (task.isComplete()) continue;
             int remaining = Math.max(0, task.getRequiredAmount() - task.getProgress());
-            progress.append(task.getDisplayName())
-                    .append(": ")
-                    .append(remaining)
-                    .append(" left | ");
+
+            String taskFormat = messages.getString("scoreboard.task_line", "§f%task% §8- §c%x% left");
+            taskLine = colorMsg(taskFormat
+                    .replace("%task%", task.getDisplayName())
+                    .replace("%x%", String.valueOf(remaining)));
+            break;
         }
 
-        if (progress.length() > 3) {
-            progress.setLength(progress.length() - 3); // remove trailing " | "
+        if (taskLine.isEmpty()) {
+            taskLine = colorMsg(messages.getString("scoreboard.no_active_tasks", "§7No active tasks"));
         }
 
-        plugin.getLogger().info("[DEBUG] Action bar progress string: '" + progress.toString() + "'");
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        Objective objective = scoreboard.registerNewObjective("contract", "dummy", title);
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        if (progress.length() == 0) {
-            plugin.getLogger().info("[DEBUG] No tasks to show in action bar, skipping send.");
-            return;  // no progress to show, don't send empty action bar
-        }
+        objective.getScore(taskLine).setScore(0); // Required to show scoreboard
 
-        String msg = format.replace("%progress%", progress.toString());
-        plugin.getLogger().info("[DEBUG] Final action bar message: " + msg);
-
-        player.spigot().sendMessage(
-                net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
-                new net.md_5.bungee.api.chat.TextComponent(colorMsg(msg))
-        );
+        player.setScoreboard(scoreboard);
+        contractScoreboards.put(player.getUniqueId(), scoreboard);
     }
+
+
+
+    public void removeContractScoreboard(UUID uuid) {
+        contractScoreboards.remove(uuid);
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+        }
+    }
+
 
     public boolean isOnCooldown(UUID uuid) {
         return contractCooldowns.containsKey(uuid) && contractCooldowns.get(uuid) > System.currentTimeMillis();
@@ -352,12 +387,16 @@ public class ContractManager {
 
     public void startContractTimer(Player player, ActiveContract contract) {
         UUID uuid = player.getUniqueId();
+        long totalDurationMillis = contract.getDuration() * 1000L;
 
         new BukkitRunnable() {
+            private boolean flashToggle = false;
+
             @Override
             public void run() {
                 if (!activeContracts.containsKey(uuid)) {
                     stopBossBar(uuid);
+                    removeContractScoreboard(uuid);
                     cancel();
                     return;
                 }
@@ -366,6 +405,7 @@ public class ContractManager {
                 if (timeLeft <= 0) {
                     activeContracts.remove(uuid);
                     stopBossBar(uuid);
+                    removeContractScoreboard(uuid);
                     player.sendMessage(colorMsg("§cYour contract has expired."));
                     plugin.getLogger().info("[Contract] Player " + player.getName() + "'s contract expired.");
                     startCooldown(uuid);
@@ -373,15 +413,28 @@ public class ContractManager {
                     return;
                 }
 
-                double progress = timeLeft / (double) (contract.getDuration() * 1000L);
+                double progress = timeLeft / (double) totalDurationMillis;
                 BossBar bar = bossBars.get(uuid);
                 if (bar != null) {
+                    if (timeLeft <= 10_000) {
+                        bar.setColor(flashToggle ? BarColor.RED : BarColor.WHITE);
+                        flashToggle = !flashToggle;
+                    } else if (progress <= 1.0 / 6.0) {
+                        bar.setColor(BarColor.RED);
+                    } else if (progress <= 0.5) {
+                        bar.setColor(BarColor.YELLOW);
+                    } else {
+                        bar.setColor(BarColor.GREEN);
+                    }
                     bar.setProgress(progress);
                     updateBossBarTitle(player, contract, bar);
                 }
+
+                updateContractScoreboard(player, contract);
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
+
 
     private String formatTime(long millis) {
         long totalSeconds = millis / 1000;

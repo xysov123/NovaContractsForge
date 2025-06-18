@@ -71,7 +71,7 @@ public class PixelmonEvents {
         }
 
         if (progressMade) {
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
             NovaContracts.getInstance().getDataManager().savePlayerData(player);
         } else {
             NovaContracts.getInstance().getLogger().info("[DEBUG] No matching CATCH_POKEMON task for " + species);
@@ -142,7 +142,7 @@ public class PixelmonEvents {
         }
 
         if (progressMade) {
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
             NovaContracts.getInstance().getDataManager().savePlayerData(player);
         } else {
             NovaContracts.getInstance().getLogger().info("[DEBUG] No matching DEFEAT_WILD_POKEMON task for " + species);
@@ -191,7 +191,7 @@ public class PixelmonEvents {
         }
 
         if (progressMade) {
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
             NovaContracts.getInstance().getDataManager().savePlayerData(player);
         } else {
             NovaContracts.getInstance().getLogger().info("[DEBUG] No matching HATCH_EGG task for " + species);
@@ -237,7 +237,7 @@ public class PixelmonEvents {
         }
 
         if (progressMade) {
-            contractManager.sendTaskProgressActionBar(player, contract);
+            contractManager.updateContractScoreboard(player, contract);
             NovaContracts.getInstance().getDataManager().savePlayerData(player);
         }
 
