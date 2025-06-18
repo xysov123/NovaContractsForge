@@ -115,13 +115,15 @@ public class ContractManager {
 
             int target = taskSec.getInt("target", 1);
             String specific = taskSec.getString("specific", null);
+            Integer minLevel = taskSec.contains("min-level") ? taskSec.getInt("min-level") : null;
             List<String> listSpecific = taskSec.getStringList("listSpecific");
             if (listSpecific.isEmpty()) listSpecific = null;
 
-            tasks.add(new ContractTask(type, specific, listSpecific, target));
+            tasks.add(new ContractTask(type, specific, listSpecific, target, minLevel));
         }
         return tasks;
     }
+
 
     public void viewContract(Player player) {
         UUID uuid = player.getUniqueId();

@@ -154,4 +154,95 @@ public class PixelmonEvents {
         }
     }
 
+    @SubscribeEvent
+    public void onEggHatch(EggHatchEvent.Post event) {
+        net.minecraft.entity.player.ServerPlayerEntity forgePlayer = event.getPlayer();
+        if (forgePlayer == null) return;
+
+        UUID uuid = forgePlayer.getUUID();
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) {
+            NovaContracts.getInstance().getLogger().info("[DEBUG] No Bukkit player found for UUID: " + uuid);
+            return;
+        }
+
+        String species = event.getPokemon().getSpecies().getName();
+        NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " hatched a " + species);
+
+        ActiveContract contract = contractManager.getActiveContracts().get(uuid);
+        if (contract == null) {
+            NovaContracts.getInstance().getLogger().info("[DEBUG] No active contract for player " + player.getName());
+            return;
+        }
+
+        boolean progressMade = false;
+
+        for (ContractTask task : contract.getTasks()) {
+            if (task.getType() != TaskType.HATCH_EGG || task.isComplete()) continue;
+
+            String target = task.getSpecific(); // could be null
+            if (target == null || target.equalsIgnoreCase(species)) {
+                task.incrementProgress();
+                NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " hatched " + species +
+                        ", progress now " + task.getProgress() + "/" + task.getRequiredAmount());
+                progressMade = true;
+                break;
+            }
+        }
+
+        if (progressMade) {
+            contractManager.sendTaskProgressActionBar(player, contract);
+            NovaContracts.getInstance().getDataManager().savePlayerData(player);
+        } else {
+            NovaContracts.getInstance().getLogger().info("[DEBUG] No matching HATCH_EGG task for " + species);
+        }
+
+        if (contract.isComplete()) {
+            NovaContracts.getInstance().getLogger().info("[DEBUG] Contract complete for player " + player.getName());
+            contractManager.completeContract(player);
+        }
+    }
+
+    @SubscribeEvent
+    public void onDefeatTrainer(BeatTrainerEvent event) {
+        UUID uuid = event.player.getUUID();
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) return;
+
+        String trainerName = event.trainer.getName().getString();
+        int trainerLevel = event.trainer.getTrainerLevel();
+
+        NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() +
+                " defeated trainer " + trainerName + " (Level " + trainerLevel + ")");
+
+        ActiveContract contract = contractManager.getActiveContracts().get(uuid);
+        if (contract == null) return;
+
+        boolean progressMade = false;
+
+        for (ContractTask task : contract.getTasks()) {
+            if (task.getType() != TaskType.DEFEAT_TRAINER || task.isComplete()) continue;
+
+            String target = task.getSpecific(); // can be null
+            Integer minLevel = task.getMinLevel(); // You'll add this getter
+
+            if ((target == null || target.equalsIgnoreCase(trainerName))
+                    && (minLevel == null || trainerLevel >= minLevel)) {
+                task.incrementProgress();
+                NovaContracts.getInstance().getLogger().info("[DEBUG] Trainer match met, progress now " +
+                        task.getProgress() + "/" + task.getRequiredAmount());
+                progressMade = true;
+                break;
+            }
+        }
+
+        if (progressMade) {
+            contractManager.sendTaskProgressActionBar(player, contract);
+            NovaContracts.getInstance().getDataManager().savePlayerData(player);
+        }
+
+        if (contract.isComplete()) {
+            contractManager.completeContract(player);
+        }
+    }
 }
