@@ -96,14 +96,19 @@ public class ContractManager {
         ActiveContract contract = new ActiveContract(uuid, tier, contractId, System.currentTimeMillis(), duration, chosenTasks);
         activeContracts.put(uuid, contract);
 
-        player.sendMessage(colorMsg(messages.getString("accepted_contract")
-                .replace("%tier%", capitalize(tier))
-                .replace("%contractId%", contractId)));
-
         plugin.getLogger().info("[Contract] Player " + player.getName() + " accepted contract " + contractId + " of tier " + tier);
 
-        startBossBar(player, contract);
-        startContractTimer(player, contract);
+        sendTitle(
+                player,
+                messages.getString("titles.accepted.title", "&aContract Accepted"),
+                messages.getString("titles.accepted.subtitle", "&fYou accepted a %tier% contract").replace("%tier%", capitalize(tier)),
+                10, 60, 20
+        );
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            startBossBar(player, contract);
+            startContractTimer(player, contract);
+        }, 90L);
     }
 
 
@@ -221,7 +226,7 @@ public class ContractManager {
         // Save player data after completion
         plugin.getDataManager().savePlayerData(player);
 
-        player.sendMessage(colorMsg("&aYou have completed your contract!"));
+        sendTitle(player, "&aContract Complete", "&fWell done!", 10, 60, 20);
     }
 
     public void updateContractScoreboard(Player player, ActiveContract contract) {
@@ -275,7 +280,13 @@ public class ContractManager {
         int cooldownSec = plugin.getConfig().getInt("global-cooldown", 600);
         contractCooldowns.put(uuid, System.currentTimeMillis() + cooldownSec * 1000L);
     }
-
+    public void sendTitle(Player player, String title, String subtitle, int fadeIn, int stay, int fadeOut) {
+        player.sendTitle(
+                colorMsg(title),
+                colorMsg(subtitle),
+                fadeIn, stay, fadeOut
+        );
+    }
     private List<String> getContractIdsForTier(String tier, FileConfiguration contractsConfig) {
         ConfigurationSection all = contractsConfig.getConfigurationSection("contracts");
         plugin.getLogger().info("[DEBUG] Looking for contracts under 'contracts' section: " + all);
@@ -406,7 +417,13 @@ public class ContractManager {
                     activeContracts.remove(uuid);
                     stopBossBar(uuid);
                     removeContractScoreboard(uuid);
-                    player.sendMessage(colorMsg("§cYour contract has expired."));
+                    FileConfiguration messages = ConfigLoader.getMessagesConfig();
+                    sendTitle(
+                            player,
+                            messages.getString("titles.expired.title", "§cContract Failed"),
+                            messages.getString("titles.expired.subtitle", "§7Time ran out!"),
+                            10, 60, 20
+                    );
                     plugin.getLogger().info("[Contract] Player " + player.getName() + "'s contract expired.");
                     startCooldown(uuid);
                     cancel();
