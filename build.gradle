@@ -1,12 +1,52 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true
+    }
+}
+
 plugins {
     id 'java'
 }
 
+apply plugin: 'net.minecraftforge.gradle'
+
 group = 'org.xysov.novacontracts'
 version = '1.0-SNAPSHOT'
 
-sourceCompatibility = '17'
-targetCompatibility = '17'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: '1.16.5'
+    
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                novacontracts {
+                    source sourceSets.main
+                }
+            }
+        }
+        
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                novacontracts {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -18,6 +58,7 @@ repositories {
     maven { url = 'https://maven.izzel.io/releases' }
     maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
     maven { url = "https://files.minecraftforge.net/maven" }
+    maven { url = 'https://maven.minecraftforge.net/' }
 
     flatDir {
         dirs 'libs'
@@ -25,36 +66,36 @@ repositories {
 }
 
 dependencies {
+    minecraft 'net.minecraftforge:forge:1.16.5-36.2.39'
+    
     compileOnly "org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT"
-
     compileOnly "io.izzel.arclight:arclight-api:1.4.0"
-
-    compileOnly name: 'arclight-1.16.5-1.4.0-server'
-
+    
     compileOnly name: 'Pixelmon-1.16.5-9.1.13-server'
-
-    compileOnly 'net.minecraftforge:forge:1.16.5-36.2.39'
-
+    
     compileOnly 'net.essentialsx:EssentialsX:2.19.7'
     compileOnly 'net.luckperms:api:5.4'
     compileOnly 'org.jetbrains:annotations:24.0.1'
 
-    // Misc
     implementation 'org.ow2.asm:asm:9.5'
     implementation 'org.ow2.asm:asm-tree:9.5'
     implementation 'org.bstats:bstats-bukkit:1.7'
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
 jar {
     manifest {
-        attributes(
-                'Main-Class': 'org.xysov.novacontracts.Main',
-                'Implementation-Title': 'NovaContracts',
-                'Implementation-Version': version
-        )
+        attributes([
+                'Specification-Title'     : 'NovaContracts',
+                'Specification-Vendor'    : 'xysov',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : 'xysov',
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
     }
 }
