@@ -6,7 +6,9 @@ public enum TaskType {
     HATCH_EGG,
     DEFEAT_TRAINER,
     MINE_BLOCK,
-    CRAFT_ITEM;
+    CRAFT_ITEM,
+    PICK_APRICORN,
+    FISH_POKEMON;
 
     public static TaskType fromString(String str) {
         return TaskType.valueOf(str.toUpperCase());

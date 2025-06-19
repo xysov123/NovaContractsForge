@@ -150,21 +150,32 @@ public class ContractManager {
         ActiveContract contract = activeContracts.get(uuid);
 
         if (contract == null) {
-            player.sendMessage(colorMsg(messages.getString("view_no_active")));
+            player.sendMessage(colorMsg(messages.getString("view_no_active", "&cYou don't have an active contract.")));
             return;
         }
 
-        player.sendMessage(colorMsg(messages.getString("view_header")));
-        player.sendMessage(colorMsg(messages.getString("view_tier").replace("%tier%", capitalize(contract.getTier()))));
+        player.sendMessage(colorMsg("&8&m----------------------"));
+        player.sendMessage(colorMsg("&a&lActive Contract &7(Tier: &f" + capitalize(contract.getTier()) + "&7)"));
 
-        // Instead of contract ID, show task details:
         int taskNumber = 1;
         for (ContractTask task : contract.getTasks()) {
-            String taskDisplay = formatTaskForDisplay(task, taskNumber);
-            player.sendMessage(colorMsg(taskDisplay));
+            if (task.isComplete()) continue;
+
+            int remaining = Math.max(0, task.getRequiredAmount() - task.getProgress());
+            String displayName = task.getDisplayName(); // Already set from config when parsing
+
+            String taskLine = messages.getString("view_task_format",
+                            "&e• &f%task% &8- &c%x% left")
+                    .replace("%task%", displayName)
+                    .replace("%x%", String.valueOf(remaining));
+
+            player.sendMessage(colorMsg(taskLine));
             taskNumber++;
         }
+
+        player.sendMessage(colorMsg("&8&m----------------------"));
     }
+
 
     // Helper method to format a single task nicely
     private String formatTaskForDisplay(ContractTask task, int taskNumber) {
@@ -434,7 +445,7 @@ public class ContractManager {
                 BossBar bar = bossBars.get(uuid);
                 if (bar != null) {
                     if (timeLeft <= 10_000) {
-                        bar.setColor(flashToggle ? BarColor.RED : BarColor.WHITE);
+                        bar.setColor(flashToggle ? BarColor.RED : BarColor.YELLOW);
                         flashToggle = !flashToggle;
                     } else if (progress <= 1.0 / 6.0) {
                         bar.setColor(BarColor.RED);
@@ -449,7 +460,7 @@ public class ContractManager {
 
                 updateContractScoreboard(player, contract);
             }
-        }.runTaskTimer(plugin, 0L, 20L);
+        }.runTaskTimer(plugin, 0L, 8L);
     }
 
 

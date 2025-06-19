@@ -11,7 +11,12 @@ import com.xysov.novacontracts.contracts.ActiveContract;
 import com.xysov.novacontracts.contracts.ContractTask;
 import com.xysov.novacontracts.managers.ContractManager;
 import com.xysov.novacontracts.contracts.TaskType;
+import com.pixelmonmod.pixelmon.api.events.ApricornEvent;
+import com.pixelmonmod.pixelmon.api.events.EvolveEvent;
+import com.pixelmonmod.pixelmon.api.events.CurryFinishedEvent;
+import com.pixelmonmod.pixelmon.api.events.FishingEvent;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -245,4 +250,81 @@ public class PixelmonEvents {
             contractManager.completeContract(player);
         }
     }
+
+    @SubscribeEvent
+    public void onApricornPick(ApricornEvent.Pick event) {
+        UUID uuid = event.getPlayer().getUUID();
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) return;
+
+        String apricornType = event.getApricorn().name();
+        NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " picked apricorn: " + apricornType);
+
+        ActiveContract contract = contractManager.getActiveContracts().get(uuid);
+        if (contract == null) return;
+
+        boolean progressMade = false;
+        for (ContractTask task : contract.getTasks()) {
+            if (task.getType() != TaskType.PICK_APRICORN || task.isComplete()) continue;
+
+            if (task.getSpecific() != null && task.getSpecific().equalsIgnoreCase(apricornType)) {
+                task.incrementProgress();
+                progressMade = true;
+                break;
+            } else if (task.getListSpecific() != null && task.getListSpecific().contains(apricornType)) {
+                task.incrementProgress();
+                progressMade = true;
+                break;
+            } else if (task.getSpecific() == null && task.getListSpecific() == null) {
+                // Catch-all if it's a general apricorn pick task
+                task.incrementProgress();
+                progressMade = true;
+                break;
+            }
+        }
+
+        if (progressMade) {
+            contractManager.updateContractScoreboard(player, contract);
+            NovaContracts.getInstance().getDataManager().savePlayerData(player);
+
+            if (contract.isComplete()) {
+                NovaContracts.getInstance().getLogger().info("[DEBUG] Contract complete for player " + player.getName());
+                contractManager.completeContract(player);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onFishingCatch(FishingEvent.Catch event) {
+        UUID uuid = event.player.getUUID();
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) return;
+
+        NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " reeled a Pokémon while fishing.");
+
+        ActiveContract contract = contractManager.getActiveContracts().get(uuid);
+        if (contract == null) return;
+
+        boolean progressMade = false;
+        for (ContractTask task : contract.getTasks()) {
+            if (task.getType() != TaskType.FISH_POKEMON || task.isComplete()) continue;
+
+            // If the task is not specific to a species, just increment
+            if (task.getSpecific() == null && task.getListSpecific() == null) {
+                task.incrementProgress();
+                progressMade = true;
+                break;
+            }
+        }
+
+        if (progressMade) {
+            contractManager.updateContractScoreboard(player, contract);
+            NovaContracts.getInstance().getDataManager().savePlayerData(player);
+        }
+
+        if (contract.isComplete()) {
+            contractManager.completeContract(player);
+        }
+    }
+
 }
