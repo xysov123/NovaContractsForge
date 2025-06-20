@@ -5,6 +5,7 @@ import com.xysov.novacontracts.contracts.ActiveContract;
 import com.xysov.novacontracts.contracts.ContractTask;
 import com.xysov.novacontracts.contracts.TaskType;
 import com.xysov.novacontracts.utils.ConfigLoader;
+import com.xysov.novacontracts.utils.LeaderboardEntry;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.boss.BarColor;
@@ -19,6 +20,10 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 public class ContractManager {
@@ -30,6 +35,9 @@ public class ContractManager {
     private final Map<UUID, BossBar> bossBars = new HashMap<>();
     private final Map<UUID, Scoreboard> contractScoreboards = new HashMap<>();
     private final Map<UUID, Integer> playerReputation = new HashMap<>();
+    private long leaderboardLastRefresh = 0L;
+    private final long leaderboardRefreshInterval = 5 * 60 * 1000L;
+    private List<PlayerReputationEntry> cachedTopReputation = new ArrayList<>();
 
     public ContractManager(NovaContracts plugin) {
         this.plugin = plugin;
@@ -198,12 +206,10 @@ public class ContractManager {
     }
 
 
-    // Helper method to format a single task nicely
     private String formatTaskForDisplay(ContractTask task, int taskNumber) {
         String typeName = task.getType().name().replace('_', ' '); // e.g. CATCH_POKEMON → "CATCH POKEMON"
         String specific = (task.getSpecific() != null) ? task.getSpecific() : "Multiple";
 
-        // Show progress left
         int left = Math.max(0, task.getRequiredAmount() - task.getProgress());
 
         return String.format("§7➤ §fTask %d: %s (%s) §8- §c%d left", taskNumber, typeName, specific, left);
@@ -241,7 +247,6 @@ public class ContractManager {
         removeReputation(uuid, reputationLoss);
         plugin.getLogger().info("[DEBUG] Reputation loss for " + player.getName() + " on cancel: " + reputationLoss);
 
-        // ✅ Remove contract from persistent storage
         plugin.getDataManager().removeActiveContract(uuid);
 
         startCooldown(uuid);
@@ -596,7 +601,7 @@ public class ContractManager {
         setReputation(uuid, before - amount);
         int after = getReputation(uuid);
         plugin.getLogger().info("[DEBUG] Reputation changed for " + uuid + ": " + before + " -> " + after);
-
+        updateCachedTopReputation(10);
         Player player = Bukkit.getPlayer(uuid);
         if (player != null && player.isOnline()) {
             player.sendMessage("§cYou lost " + (before - after) + " Reputation. §7Total: §f" + after);
@@ -608,7 +613,7 @@ public class ContractManager {
         int after = before + amount;
         setReputation(uuid, after);
         plugin.getLogger().info("[DEBUG] Reputation added for " + uuid + ": " + before + " -> " + Math.max(0, after));
-
+        updateCachedTopReputation(10);
         Player player = Bukkit.getPlayer(uuid);
         if (player != null && player.isOnline()) {
             player.sendMessage("§aYou earned " + (after - before) + " Reputation! §7Total: §f" + after);
@@ -624,5 +629,76 @@ public class ContractManager {
         int before = playerReputation.getOrDefault(uuid, 0);
         playerReputation.put(uuid, clampedAmount);
         plugin.getLogger().info("[DEBUG] Reputation set for " + uuid + ": " + before + " -> " + clampedAmount);
+        updateCachedTopReputation(10);
+    }
+
+    public void refreshLeaderboardAsync() {
+        if (System.currentTimeMillis() - leaderboardLastRefresh < leaderboardRefreshInterval) return;
+
+        leaderboardLastRefresh = System.currentTimeMillis();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<PlayerReputationEntry> newList = new ArrayList<>();
+            try (Connection conn = plugin.getDataManager().getConnection();
+                 PreparedStatement ps = conn.prepareStatement("SELECT uuid, reputation FROM player_data ORDER BY reputation DESC LIMIT 10")) {
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    UUID uuid = UUID.fromString(rs.getString("uuid"));
+                    int rep = rs.getInt("reputation");
+                    String name = Bukkit.getOfflinePlayer(uuid).getName();
+                    if (name == null) name = "Unknown";
+                    newList.add(new PlayerReputationEntry(name, rep));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to refresh reputation leaderboard:");
+                e.printStackTrace();
+            }
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                cachedTopReputation = newList;
+                plugin.getLogger().info("[Leaderboard] Reputation leaderboard updated with top " + newList.size() + " players.");
+            });
+        });
+    }
+
+
+    public void updateCachedTopReputation(int limit) {
+        List<PlayerReputationEntry> list = new ArrayList<>();
+
+        for (UUID uuid : playerReputation.keySet()) {
+            String name = Bukkit.getOfflinePlayer(uuid).getName();
+            if (name == null) continue;
+            int rep = playerReputation.get(uuid);
+            list.add(new PlayerReputationEntry(name, rep));
+        }
+
+        list.sort((a, b) -> Integer.compare(b.getReputation(), a.getReputation()));
+
+        if (list.size() > limit) {
+            cachedTopReputation = list.size() > limit ? new ArrayList<>(list.subList(0, limit)) : list;
+        } else {
+            cachedTopReputation = list;
+        }
+    }
+
+    public List<PlayerReputationEntry> getCachedTopReputation() {
+        return cachedTopReputation;
+    }
+
+    public static class PlayerReputationEntry {
+        private final String playerName;
+        private final int reputation;
+
+        public PlayerReputationEntry(String playerName, int reputation) {
+            this.playerName = playerName;
+            this.reputation = reputation;
+        }
+
+        public String getPlayerName() {
+            return playerName;
+        }
+
+        public int getReputation() {
+            return reputation;
+        }
     }
 }

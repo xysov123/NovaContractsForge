@@ -14,6 +14,7 @@ import com.xysov.novacontracts.managers.RewardManager;
 import com.xysov.novacontracts.utils.ConfigLoader;
 import com.pixelmonmod.pixelmon.Pixelmon;
 import io.izzel.arclight.api.Arclight;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class NovaContracts extends JavaPlugin {
 
@@ -56,7 +57,6 @@ public class NovaContracts extends JavaPlugin {
         } else {
             getLogger().warning("PlaceholderAPI not found! Placeholders will not work.");
         }
-
 
         if (getCommand("contract") != null) {
             getCommand("contract").setExecutor(new ContractCommand(this));

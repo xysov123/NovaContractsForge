@@ -228,5 +228,7 @@ public class DataManager {
         return tasks;
     }
 
-
+    public Connection getConnection() {
+        return connection;
+    }
 }
