@@ -76,13 +76,25 @@ public class ContractManager {
         }
 
         List<String> availableContracts = getContractIdsForTier(tier, contractsConfig);
-        if (availableContracts.isEmpty()) {
+        List<String> eligibleContracts = new ArrayList<>();
+
+        for (String id : availableContracts) {
+            ConfigurationSection section = contractsConfig.getConfigurationSection("contracts." + id);
+            if (section == null) continue;
+
+            int requirement = section.getInt("reputation-requirement", 0);
+            if (rep >= requirement) {
+                eligibleContracts.add(id);
+            }
+        }
+
+        if (eligibleContracts.isEmpty()) {
             player.sendMessage(colorMsg(messages.getString("no_contracts_tier").replace("%tier%", capitalize(tier))));
-            plugin.getLogger().info("[Contract] No contracts available for tier " + tier);
+            plugin.getLogger().info("[Contract] No eligible contracts found for tier " + tier + " with player's rep: " + rep);
             return;
         }
 
-        String contractId = availableContracts.get(new Random().nextInt(availableContracts.size()));
+        String contractId = eligibleContracts.get(new Random().nextInt(eligibleContracts.size()));
         ConfigurationSection contractSection = contractsConfig.getConfigurationSection("contracts." + contractId);
         if (contractSection == null) {
             player.sendMessage(colorMsg(messages.getString("error_loading_contract").replace("%contractId%", contractId)));
@@ -104,9 +116,7 @@ public class ContractManager {
         ActiveContract contract = new ActiveContract(uuid, tier, contractId, System.currentTimeMillis(), duration, chosenTasks);
         activeContracts.put(uuid, contract);
 
-        // Save contract to database
         plugin.getDataManager().saveActiveContract(uuid, contract);
-
         plugin.getLogger().info("[Contract] Player " + player.getName() + " accepted contract " + contractId + " of tier " + tier);
 
         sendTitle(
@@ -121,6 +131,7 @@ public class ContractManager {
             startContractTimer(player, contract);
         }, 90L);
     }
+
 
 
     private List<ContractTask> parseTasks(ConfigurationSection tasksSection, String displayName) {
@@ -230,11 +241,15 @@ public class ContractManager {
         removeReputation(uuid, reputationLoss);
         plugin.getLogger().info("[DEBUG] Reputation loss for " + player.getName() + " on cancel: " + reputationLoss);
 
+        // ✅ Remove contract from persistent storage
+        plugin.getDataManager().removeActiveContract(uuid);
+
         startCooldown(uuid);
         player.sendMessage(colorMsg(messages.getString("cancelled_contract")));
         plugin.getLogger().info("[Contract] Player " + player.getName() + " cancelled their contract.");
         plugin.getDataManager().savePlayerData(player);
     }
+
 
 
     public void resetCooldown(String playerName) {
@@ -276,7 +291,12 @@ public class ContractManager {
                 }
             }
         }
+
         removeReputation(uuid, reputationLoss);
+
+        plugin.getDataManager().removeActiveContract(uuid);
+
+        plugin.getDataManager().savePlayerData(player);
 
         FileConfiguration messages = ConfigLoader.getMessagesConfig();
         sendTitle(
@@ -285,9 +305,10 @@ public class ContractManager {
                 messages.getString("titles.expired.subtitle", "§7Time ran out!"),
                 10, 60, 20
         );
+
         plugin.getLogger().info("[Contract] Player " + player.getName() + "'s contract failed.");
         plugin.getLogger().info("[DEBUG] Reputation loss for " + player.getName() + ": " + reputationLoss);
-        plugin.getDataManager().savePlayerData(player);
+
         startCooldown(uuid);
     }
 
@@ -296,10 +317,9 @@ public class ContractManager {
         ActiveContract contract = activeContracts.get(uuid);
         if (contract == null) return;
 
-        // Give rewards for the contract
         plugin.getRewardManager().giveReward(player, contract);
 
-        // Calculate reputation gain from tasks
+        // Reputation
         int reputationGain = 0;
         FileConfiguration contractsConfig = ConfigLoader.getContractsConfig();
         ConfigurationSection contractSection = contractsConfig.getConfigurationSection("contracts." + contract.getContractId());
@@ -314,18 +334,22 @@ public class ContractManager {
                 }
             }
         }
+
         addReputation(uuid, reputationGain);
 
-        // Remove active contract
         activeContracts.remove(uuid);
         contractCooldowns.remove(uuid);
 
-        // Save player data after completion
+        plugin.getDataManager().removeActiveContract(uuid);
+
         plugin.getDataManager().savePlayerData(player);
-        plugin.getLogger().info("[DEBUG] Reputation loss for " + player.getName() + ": " + reputationGain);
+
+        plugin.getLogger().info("[DEBUG] Reputation gain for " + player.getName() + ": " + reputationGain);
 
         sendTitle(player, "&aContract Complete", "&fWell done!", 10, 60, 20);
+        startCooldown(uuid);
     }
+
 
     public void updateContractScoreboard(Player player, ActiveContract contract) {
         FileConfiguration messages = ConfigLoader.getMessagesConfig();
