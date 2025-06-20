@@ -66,12 +66,27 @@ public class ContractTask {
         }
     }
 
+    public void incrementProgress(int amount) {
+        progress = Math.min(progress + amount, requiredAmount);
+        complete = progress >= requiredAmount;
+    }
+
     public String getDisplayName() {
         return displayName != null ? displayName : type.toString();
     }
 
     public Integer getMinLevel() {
         return minLevel;
+    }
+
+    public static class ContractTaskDTO {
+        public String type;
+        public String specific;
+        public List<String> listSpecific;
+        public int requiredAmount;
+        public Integer minLevel;
+        public String displayName;
+        public int progress;
     }
 
 }

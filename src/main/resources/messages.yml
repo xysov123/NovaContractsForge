@@ -1,3 +1,9 @@
+view_no_active: "&cYou don't have an active contract."
+view_header: "&8&m----------------------"
+view_tier: "&a&lActive Contract &7(Tier: &f%tier%&7)"
+view_task_format: "&e• &f%task% &8- &c%x% left"
+
+
 no_permission: "&cYou don't have permission to perform this action."
 already_active: "&cYou already have an active contract. Use /contract cancel to end it."
 on_cooldown: "&cYou're on cooldown for %seconds% more seconds."
@@ -17,3 +23,28 @@ view_no_active: "&eYou have no active contract."
 view_header: "&6=== Active Contract ==="
 view_tier: "&eTier: &f%tier%"
 view_name: "&eName: &f%contractId%"
+bossbar:
+  title: "&a%tier% Contract &7- Time Left: &b%time%"
+contract_completed: "&aGood work! You have completed your contract."
+task_format: "Task - %task_name%: %remaining% left"
+task_progress_actionbar: "&a%progress%"
+scoreboard:
+  title: "§a✦ Contract ✦"
+  task_line: "§c%x% left §a- §f%task% §8 |"
+  no_active_tasks: "§7No active tasks"
+
+titles:
+  accepted:
+    title: "&aContract Accepted"
+    subtitle: "&fTier: %tier%"
+  completed:
+    title: "&aContract Complete"
+    subtitle: "&fWell done!"
+  failed:
+    title: "&cContract Failed"
+    subtitle: "&7You ran out of time."
+  cooldown:
+    title: "&eOn Cooldown"
+    subtitle: "&7Try again in &c%seconds%s"
+
+

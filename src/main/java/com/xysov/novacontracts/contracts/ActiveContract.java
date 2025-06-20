@@ -53,4 +53,5 @@ public class ActiveContract {
         long end = startTime + (duration * 1000L);
         return Math.max(0, end - System.currentTimeMillis());
     }
+
 }

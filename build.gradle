@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 
 group = 'org.xysov.novacontracts'
-version = '1.0-SNAPSHOT'
+version = '1.2.0'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
@@ -77,9 +77,14 @@ dependencies {
     compileOnly 'net.luckperms:api:5.4'
     compileOnly 'org.jetbrains:annotations:24.0.1'
 
+    compileOnly name: 'PlaceholderAPI-2.11.2'
+
     implementation 'org.ow2.asm:asm:9.5'
     implementation 'org.ow2.asm:asm-tree:9.5'
     implementation 'org.bstats:bstats-bukkit:1.7'
+    implementation 'org.xerial:sqlite-jdbc:3.45.3.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
 }
 
 tasks.withType(JavaCompile).configureEach {

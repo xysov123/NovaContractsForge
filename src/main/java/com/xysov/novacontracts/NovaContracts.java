@@ -1,8 +1,8 @@
 package com.xysov.novacontracts;
 
-import com.xysov.novacontracts.listeners.CraftingListener;
-import com.xysov.novacontracts.listeners.MiningListener;
-import com.xysov.novacontracts.listeners.PlayerJoinListener;
+import com.xysov.novacontracts.listeners.*;
+import com.xysov.novacontracts.managers.SQLiteManager;
+import com.xysov.novacontracts.utils.ContractPlaceholders;
 import com.xysov.novacontracts.utils.PlacedBlockTracker;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,7 +14,6 @@ import com.xysov.novacontracts.managers.RewardManager;
 import com.xysov.novacontracts.utils.ConfigLoader;
 import com.pixelmonmod.pixelmon.Pixelmon;
 import io.izzel.arclight.api.Arclight;
-import com.xysov.novacontracts.listeners.PixelmonEvents;
 
 public class NovaContracts extends JavaPlugin {
 
@@ -24,6 +23,7 @@ public class NovaContracts extends JavaPlugin {
     private RewardManager rewardManager;
     private DataManager dataManager;
     private PlacedBlockTracker placedBlockTracker;
+    private SQLiteManager sqliteManager;
 
     public static NovaContracts getInstance() {
         return instance;
@@ -41,6 +41,7 @@ public class NovaContracts extends JavaPlugin {
         contractManager = new ContractManager(this);
         rewardManager = new RewardManager(this);
         placedBlockTracker = new PlacedBlockTracker(getDataFolder());
+        sqliteManager = new SQLiteManager(getDataFolder().getAbsolutePath());
 
         io.izzel.arclight.api.Arclight.registerForgeEvent(
                 this,
@@ -48,6 +49,14 @@ public class NovaContracts extends JavaPlugin {
                 new PixelmonEvents(contractManager)
         );
         getLogger().info("Registered Pixelmon Forge events via Arclight");
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new ContractPlaceholders(this).register();
+            getLogger().info("PlaceholderAPI hooked successfully.");
+        } else {
+            getLogger().warning("PlaceholderAPI not found! Placeholders will not work.");
+        }
+
 
         if (getCommand("contract") != null) {
             getCommand("contract").setExecutor(new ContractCommand(this));
@@ -58,6 +67,8 @@ public class NovaContracts extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         Bukkit.getPluginManager().registerEvents(new CraftingListener(this), this);
         Bukkit.getPluginManager().registerEvents(new MiningListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new SmeltingListener(this), this);
 
         getLogger().info("NovaContracts has been enabled!");
     }

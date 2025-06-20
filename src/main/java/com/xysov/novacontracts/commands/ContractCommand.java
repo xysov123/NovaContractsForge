@@ -22,7 +22,7 @@ public class ContractCommand implements CommandExecutor {
         FileConfiguration messages = ConfigLoader.getMessagesConfig();
 
         if (args.length == 0) {
-            sender.sendMessage(colorMsg("§eUse §b/contract accept <tier>, /contract view, /contract cancel"));
+            sender.sendMessage(colorMsg("§eUse §b/contract accept <tier>, /contract view, /contract cancel, /contract reputation"));
             return true;
         }
 
@@ -60,6 +60,11 @@ public class ContractCommand implements CommandExecutor {
                 ConfigLoader.reloadConfigs();
                 player.sendMessage(colorMsg("§aNovaContracts configuration reloaded."));
                 plugin.getLogger().info("[Contract] Configuration reloaded by " + player.getName());
+                break;
+
+            case "reputation":
+                int rep = plugin.getContractManager().getReputation(player.getUniqueId());
+                player.sendMessage("§bYour Reputation: §f" + rep);
                 break;
 
             case "resetcooldown":

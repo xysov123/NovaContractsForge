@@ -25,12 +25,18 @@ public class PlayerJoinListener implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        if (contractManager.getActiveContracts().containsKey(uuid)) {
-            ActiveContract contract = contractManager.getActiveContracts().get(uuid);
+        // Load reputation and cooldown from DB
+        plugin.getDataManager().loadPlayerData(player);
+
+        // Load active contract from DB
+        ActiveContract contract = plugin.getDataManager().loadActiveContract(uuid);
+        if (contract != null) {
+            contractManager.getActiveContracts().put(uuid, contract);
+
             // Restore the boss bar and timer for this player
             contractManager.startBossBar(player, contract);
             contractManager.startContractTimer(player, contract);
-            contractManager.updateContractScoreboard(player, contract); // Restore scoreboard on join
+            contractManager.updateContractScoreboard(player, contract);
         }
     }
 }

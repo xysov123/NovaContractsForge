@@ -8,7 +8,8 @@ public enum TaskType {
     MINE_BLOCK,
     CRAFT_ITEM,
     PICK_APRICORN,
-    FISH_POKEMON;
+    FISH_POKEMON,
+    SMELT_ITEM;
 
     public static TaskType fromString(String str) {
         return TaskType.valueOf(str.toUpperCase());

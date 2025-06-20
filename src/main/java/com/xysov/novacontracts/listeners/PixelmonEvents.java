@@ -94,21 +94,18 @@ public class PixelmonEvents {
         net.minecraft.entity.player.ServerPlayerEntity forgePlayer = event.player;
         UUID uuid = forgePlayer.getUUID();
 
-        // Get Bukkit Player from UUID (can be null if offline)
         Player player = Bukkit.getPlayer(uuid);
         if (player == null) {
             NovaContracts.getInstance().getLogger().info("[DEBUG] No Bukkit player found for UUID: " + uuid);
             return;
         }
 
-        // Get species of defeated Pokémon
         PixelmonWrapper pw = event.wpp.asWrapper();
         Species speciesObj = pw.getSpecies();
         String species = speciesObj.getName();
 
         NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " defeated a wild " + species);
 
-        // Retrieve active contract for player
         ActiveContract contract = contractManager.getActiveContracts().get(uuid);
         if (contract == null) {
             NovaContracts.getInstance().getLogger().info("[DEBUG] No active contract for player " + player.getName());
@@ -117,7 +114,6 @@ public class PixelmonEvents {
 
         boolean progressMade = false;
 
-        // Iterate over contract tasks, checking for a defeat task matching this species
         for (ContractTask task : contract.getTasks()) {
             NovaContracts.getInstance().getLogger().info("[DEBUG] Checking task: type=" + task.getType()
                     + ", specific=" + task.getSpecific()
@@ -125,10 +121,8 @@ public class PixelmonEvents {
                     + ", progress=" + task.getProgress()
                     + "/" + task.getRequiredAmount());
 
-            // Assuming you have a TaskType for defeating wild Pokemon, e.g., TaskType.DEFEAT_WILD_POKEMON
             if (task.getType() != TaskType.DEFEAT_POKEMON || task.isComplete()) continue;
 
-            // Check if the task targets a specific species
             if (task.getSpecific() != null && task.getSpecific().equalsIgnoreCase(species)) {
                 task.incrementProgress();
                 NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " defeated " + species +
@@ -136,7 +130,7 @@ public class PixelmonEvents {
                 progressMade = true;
                 break;
             }
-            // Or if the task targets any from a list of species
+
             else if (task.getListSpecific() != null && task.getListSpecific().contains(species)) {
                 task.incrementProgress();
                 NovaContracts.getInstance().getLogger().info("[DEBUG] Player " + player.getName() + " defeated " + species +

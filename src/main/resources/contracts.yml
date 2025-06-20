@@ -1,23 +1,94 @@
 contracts:
-  starter_pokemon_catch:
-    tier: easy
-    duration: 600  # seconds
+  Catch 5 Bulbasaur:
+    tier: Easy
+    duration: 30
     tasks:
-      - type: CATCH_POKEMON
+      task1:
+        type: CATCH_POKEMON
         target: 3
-        pokemon: [bulbasaur, charmander, squirtle]
+        specific: Bulbasaur
 
   diamond_miner:
-    tier: medium
+    tier: Medium
     duration: 900
     tasks:
-      - type: MINE_BLOCK
+      task1:
+        type: MINE_BLOCK
         target: 10
-        block: minecraft:diamond_ore
+        specific: DIAMOND_ORE
 
   ultimate_trainer:
-    tier: hard
+    tier: Hard
     duration: 1800
     tasks:
-      - type: DEFEAT_TRAINER
+      task1:
+        type: DEFEAT_POKEMON
+        target: 2
+        specific: Bulbasaur
+
+  ultimate_trainer2:
+    tier: Hard
+    duration: 1800
+    tasks:
+      task1:
+        type: DEFEAT_POKEMON
+        target: 2
+        specific: Charmander
+
+  egg_master:
+    tier: Medium
+    duration: 1200
+    tasks:
+      task1:
+        type: HATCH_EGG
+        target: 1
+        specific: Charmander  # only count if it's a Charmander
+
+  Hatch 1 Egg:
+    tier: Easy
+    duration: 30
+    tasks:
+      task1:
+        type: HATCH_EGG
+        target: 3
+        specific: null  # any Pokémon species is accepted
+
+  Defeat 1 NPC Trainer:
+    tier: Easy
+    duration: 30
+    tasks:
+      task1:
+        type: DEFEAT_TRAINER
+        target: 1
+        specific: null  # any trainer counts
+        min-level: 30
+
+  Fishing 1:
+    tier: Easy
+    duration: 30
+    tasks:
+      task1:
+        type: FISH_POKEMON
         target: 5
+
+  Apricorn 1:
+    tier: Easy
+    duration: 30
+    tasks:
+      task1:
+        type: PICK_APRICORN
+        specific: black
+        target: 5
+        reputation: 1
+        reputation-fail: 5
+
+  Smelt 1:
+    tier: Easy
+    duration: 30
+    tasks:
+      task1:
+        type: SMELT_ITEM
+        specific: IRON_INGOT
+        target: 5
+        reputation: 1
+        reputation-fail: 1
